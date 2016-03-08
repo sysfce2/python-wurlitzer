@@ -19,6 +19,7 @@ with open('wurlitzer.py') as f:
     for line in f:
         if line.startswith('__version__'):
             exec(line, version_ns)
+
 setup_args = dict(
     name='wurlitzer',
     version=version_ns['__version__'],
@@ -27,7 +28,7 @@ setup_args = dict(
     description="Capture C-level output in context managers",
     long_description=long_description,
     url="https://github.com/minrk/wurlitzer",
-    py_modules=['wurlitzer.py'],
+    py_modules=['wurlitzer'],
     license="MIT",
     cmdclass={},
     classifiers=[
