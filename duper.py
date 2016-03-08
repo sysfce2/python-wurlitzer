@@ -65,7 +65,6 @@ class Duper(object):
         self.encoding = encoding
         self._save_fds = {}
         self._real_fds = {}
-        self._out_pipes = {}
         self._handlers = {}
         self._handlers['stderr'] = self._handle_stderr
         self._handlers['stdout'] = self._handle_stdout
@@ -162,10 +161,6 @@ class Duper(object):
         for real_fd in self._real_fds.values():
             os.close(real_fd)
         self.thread.join()
-        
-        # close finished pipes
-        for pipe_out in self._out_pipes.values():
-            os.close(pipe_out)
         
         # restore original state
         for name, real_fd in self._real_fds.items():
