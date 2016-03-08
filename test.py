@@ -1,6 +1,8 @@
 from __future__ import print_function
 
 import io
+import mock
+
 from wurlitzer import (
     libc, capture, STDOUT, PIPE, c_stderr_p,
     redirect_to_sys, redirect_everything_to_sys,
@@ -43,3 +45,13 @@ def test_capture_stderr():
         assert _stderr is None
     
     assert stdout.getvalue() == "Hellø\nHi, stdérr\n"
+
+def test_redirect_to_sys():
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    with mock.patch('sys.stdout', stdout), mock.patch('sys.stderr', stderr), redirect_to_sys():
+        printf("Hellø")
+        printf_err("Hi, stdérr")
+    
+    assert stdout.getvalue() == "Hellø\n"
+    assert stderr.getvalue() == "Hi, stdérr\n"

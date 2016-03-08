@@ -212,9 +212,9 @@ def capture(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
         capture_encoding = None
     else:
         capture_encoding = encoding
-    wurlitzer = Duper(stdout=stdout_w, stderr=stderr_w, encoding=capture_encoding)
+    w = Wurlitzer(stdout=stdout_w, stderr=stderr_w, encoding=capture_encoding)
     try:
-        with wurlitzer:
+        with w:
             yield stdout_r, stderr_r
     finally:
         # close pipes
@@ -239,4 +239,5 @@ def redirect_everything_to_sys(encoding=_default_encoding):
     
     This is not a context manager; it turns on C-forwarding permanently.
     """
+    redirect_to_sys(encoding).__enter__()
 
