@@ -10,6 +10,6 @@ python:
 install:
   - pip install . -r dev-requirements
 script:
-  - py.test --cov duper .
+  - py.test --cov wurlitzer .
 after_success:
   - codecov

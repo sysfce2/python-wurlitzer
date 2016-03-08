@@ -1,6 +1,6 @@
 """Capture C-level FD output on pipes
 
-Use `duper.capture` or `duper.redirect_to_sys` as context managers.
+Use `wurlitzer.capture` or `wurlitzer.redirect_to_sys` as context managers.
 """
 from __future__ import print_function
 
@@ -9,7 +9,7 @@ __version__ = '0.0.1'
 __all__ = [
     'capture',
     'redirect_to_sys',
-    'Duper',
+    'Wurlitzer',
 ]
 
 from contextlib import contextmanager
@@ -39,10 +39,10 @@ if _default_encoding.lower() == 'ascii':
     # don't respect ascii
     _default_encoding = 'utf8'
 
-class Duper(object):
+class Wurlitzer(object):
     """Class for Capturing Process-level FD output via dup2
     
-    Typically used via `duper.capture`
+    Typically used via `wurlitzer.capture`
     """
     flush_interval = 0.2
     
@@ -212,9 +212,9 @@ def capture(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
         capture_encoding = None
     else:
         capture_encoding = encoding
-    duper = Duper(stdout=stdout_w, stderr=stderr_w, encoding=capture_encoding)
+    wurlitzer = Duper(stdout=stdout_w, stderr=stderr_w, encoding=capture_encoding)
     try:
-        with duper:
+        with wurlitzer:
             yield stdout_r, stderr_r
     finally:
         # close pipes
@@ -233,8 +233,10 @@ def redirect_to_sys(encoding=_default_encoding):
     """
     return capture(sys.stdout, sys.stderr, encoding=encoding)
 
+
 def redirect_everything_to_sys(encoding=_default_encoding):
     """Redirect all C output to sys.stdout/err
     
-    This does *not* 
+    This is not a context manager; it turns on C-forwarding permanently.
     """
+

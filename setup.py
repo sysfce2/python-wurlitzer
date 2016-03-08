@@ -6,7 +6,7 @@ from distutils.core import setup
 long_description = """
 Context managers for capturing C-level output::
 
-    from duper import capture
+    from wurlitzer import capture
 
     with capture() as (stdout, stderr):
         call_c_function()
@@ -15,19 +15,19 @@ Context managers for capturing C-level output::
 """
 
 version_ns = {}
-with open('duper.py') as f:
+with open('wurlitzer.py') as f:
     for line in f:
         if line.startswith('__version__'):
             exec(line, version_ns)
 setup_args = dict(
-    name='duper',
+    name='wurlitzer',
     version=version_ns['__version__'],
     author="Min RK",
     author_email="benjaminrk@gmail.com",
     description="Capture C-level output in context managers",
     long_description=long_description,
-    url="https://github.com/minrk/duper",
-    py_modules=['duper.py'],
+    url="https://github.com/minrk/wurlitzer",
+    py_modules=['wurlitzer.py'],
     license="MIT",
     cmdclass={},
     classifiers=[

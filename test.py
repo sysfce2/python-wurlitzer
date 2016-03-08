@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import io
-from duper import (
+from wurlitzer import (
     libc, capture, STDOUT, PIPE, c_stderr_p,
     redirect_to_sys, redirect_everything_to_sys,
 )

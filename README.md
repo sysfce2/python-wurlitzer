@@ -1,17 +1,17 @@
-# Duper
+# Wurlitzer
 
-Capture C-level stdout/stderr in Python via `os.dup2`.
+Capture C-level stdout/stderr pipes in Python via `os.dup2`.
 
 ## Install
 
-    pip install duper
+    pip install wurlitzer
 
 ## Usage:
 
 Capture stdout/stderr in pipes:
 
 ```python
-from duper import capture
+from wurlitzer import capture
 
 with capture() as (out, err):
     call_some_c_function()
@@ -23,7 +23,7 @@ Capture stdout/stderr in StringIO:
 
 ```python
 from io import StringIO
-from duper import capture, STDOUT
+from wurlitzer import capture, STDOUT
 
 out = StringIO()
 with capture(stdout=out, stderr=STDOUT):
@@ -36,9 +36,12 @@ Forward C-level stdout/stderr to Python sys.stdout/stderr,
 which may already be forwarded somewhere by the environment, e.g. IPython:
 
 ```python
-from duper import redirect_to_sys
+from wurlitzer import redirect_to_sys
 
 with redirect_to_sys():
     call_some_c_function()
 ```
 
+## Wurlitzer?!
+
+[Wurlitzer](https://en.wikipedia.org/wiki/Wurlitzer) makes pipe organs. Get it? Pipes? Naming is hard.
