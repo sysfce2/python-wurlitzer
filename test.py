@@ -6,6 +6,7 @@ import mock
 from wurlitzer import (
     libc, capture, STDOUT, PIPE, c_stderr_p,
     redirect_to_sys, redirect_everything_to_sys,
+    stop_redirecting_everything,
 )
 
 def printf(msg):
@@ -55,3 +56,16 @@ def test_redirect_to_sys():
     
     assert stdout.getvalue() == "Hellø\n"
     assert stderr.getvalue() == "Hi, stdérr\n"
+
+def test_redirect_everything():
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    with mock.patch('sys.stdout', stdout), mock.patch('sys.stderr', stderr):
+        redirect_everything_to_sys()
+        printf("Hellø")
+        printf_err("Hi, stdérr")
+        stop_redirecting_everything()
+    assert stdout.getvalue() == "Hellø\n"
+    assert stderr.getvalue() == "Hi, stdérr\n"
+
+

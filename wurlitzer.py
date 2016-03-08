@@ -9,6 +9,8 @@ __version__ = '0.0.1'
 __all__ = [
     'capture',
     'redirect_to_sys',
+    'redirect_everything_to_sys',
+    'stop_redirecting_everything',
     'Wurlitzer',
 ]
 
@@ -234,10 +236,23 @@ def redirect_to_sys(encoding=_default_encoding):
     return capture(sys.stdout, sys.stderr, encoding=encoding)
 
 
+_mighty_wurlitzer = None
+
 def redirect_everything_to_sys(encoding=_default_encoding):
     """Redirect all C output to sys.stdout/err
     
     This is not a context manager; it turns on C-forwarding permanently.
     """
-    redirect_to_sys(encoding).__enter__()
+    global _mighty_wurlitzer
+    if _mighty_wurlitzer is None:
+        _mighty_wurlitzer = redirect_to_sys(encoding)
+    _mighty_wurlitzer.__enter__()
+
+
+def stop_redirecting_everything():
+    """Stop permanent redirection started by redirect_everything_to_sys"""
+    global _mighty_wurlitzer
+    if _mighty_wurlitzer is not None:
+        _mighty_wurlitzer.__exit__(None, None, None)
+        _mighty_wurlitzer = None
 
