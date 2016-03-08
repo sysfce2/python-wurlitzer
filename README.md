@@ -1,0 +1,2 @@
+# duper
+Capture C-level stdout/stderr in Python
