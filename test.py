@@ -5,9 +5,9 @@ import io
 import mock
 
 from wurlitzer import (
-    libc, capture, STDOUT, PIPE, c_stderr_p, c_stdout_p,
-    redirect_to_sys, redirect_everything_to_sys,
-    stop_redirecting_everything,
+    libc, pipes, STDOUT, PIPE, c_stderr_p, c_stdout_p,
+    sys_pipes, sys_pipes_forever,
+    stop_sys_pipes,
 )
 
 def printf(msg):
@@ -18,18 +18,18 @@ def printf_err(msg):
     """Cal C fprintf on stderr"""
     libc.fprintf(c_stderr_p, (msg + '\n').encode('utf8'))
 
-def test_capture_pipes():
-    with capture(stdout=PIPE, stderr=PIPE) as (stdout, stderr):
+def test_pipes():
+    with pipes(stdout=PIPE, stderr=PIPE) as (stdout, stderr):
         printf(u"Hellø")
         printf_err(u"Hi, stdérr")
     
     assert stdout.read() == u"Hellø\n"
     assert stderr.read() == u"Hi, stdérr\n"
 
-def test_capture_forward():
+def test_forward():
     stdout = io.StringIO()
     stderr = io.StringIO()
-    with capture(stdout=stdout, stderr=stderr) as (_stdout, _stderr):
+    with pipes(stdout=stdout, stderr=stderr) as (_stdout, _stderr):
         printf(u"Hellø")
         printf_err(u"Hi, stdérr")
         assert _stdout is stdout
@@ -38,9 +38,9 @@ def test_capture_forward():
     assert stdout.getvalue() == u"Hellø\n"
     assert stderr.getvalue() == u"Hi, stdérr\n"
 
-def test_capture_stderr():
+def test_pipes_stderr():
     stdout = io.StringIO()
-    with capture(stdout=stdout, stderr=STDOUT) as (_stdout, _stderr):
+    with pipes(stdout=stdout, stderr=STDOUT) as (_stdout, _stderr):
         printf(u"Hellø")
         libc.fflush(c_stdout_p)
         printf_err(u"Hi, stdérr")
@@ -49,10 +49,10 @@ def test_capture_stderr():
     
     assert stdout.getvalue() == u"Hellø\nHi, stdérr\n"
 
-def test_redirect_to_sys():
+def test_sys_pipes():
     stdout = io.StringIO()
     stderr = io.StringIO()
-    with mock.patch('sys.stdout', stdout), mock.patch('sys.stderr', stderr), redirect_to_sys():
+    with mock.patch('sys.stdout', stdout), mock.patch('sys.stderr', stderr), sys_pipes():
         printf(u"Hellø")
         printf_err(u"Hi, stdérr")
     
@@ -63,10 +63,10 @@ def test_redirect_everything():
     stdout = io.StringIO()
     stderr = io.StringIO()
     with mock.patch('sys.stdout', stdout), mock.patch('sys.stderr', stderr):
-        redirect_everything_to_sys()
+        sys_pipes_forever()
         printf(u"Hellø")
         printf_err(u"Hi, stdérr")
-        stop_redirecting_everything()
+        stop_sys_pipes()
     assert stdout.getvalue() == u"Hellø\n"
     assert stderr.getvalue() == u"Hi, stdérr\n"
 

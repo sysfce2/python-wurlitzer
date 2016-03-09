@@ -1,16 +1,16 @@
 """Capture C-level FD output on pipes
 
-Use `wurlitzer.capture` or `wurlitzer.redirect_to_sys` as context managers.
+Use `wurlitzer.pipes` or `wurlitzer.sys_pipes` as context managers.
 """
 from __future__ import print_function
 
 __version__ = '0.0.1'
 
 __all__ = [
-    'capture',
-    'redirect_to_sys',
-    'redirect_everything_to_sys',
-    'stop_redirecting_everything',
+    'pipes',
+    'sys_pipes',
+    'sys_pipes_forever',
+    'stop_sys_pipes',
     'Wurlitzer',
 ]
 
@@ -174,7 +174,7 @@ class Wurlitzer(object):
 
 
 @contextmanager
-def capture(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
+def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
     """Capture C-level stdout/stderr in a context manager.
     
     The return value for the context manager is (stdout, stderr).
@@ -228,31 +228,31 @@ def capture(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
             stderr_w.close()
 
 
-def redirect_to_sys(encoding=_default_encoding):
+def sys_pipes(encoding=_default_encoding):
     """Redirect C-level stdout/stderr to sys.stdout/stderr
     
     This is useful of sys.sdout/stderr are already being forwarded somewhere.
     
     DO NOT USE THIS if sys.stdout and sys.stderr are not already being forwarded.
     """
-    return capture(sys.stdout, sys.stderr, encoding=encoding)
+    return pipes(sys.stdout, sys.stderr, encoding=encoding)
 
 
 _mighty_wurlitzer = None
 
-def redirect_everything_to_sys(encoding=_default_encoding):
+def sys_pipes_forever(encoding=_default_encoding):
     """Redirect all C output to sys.stdout/err
     
     This is not a context manager; it turns on C-forwarding permanently.
     """
     global _mighty_wurlitzer
     if _mighty_wurlitzer is None:
-        _mighty_wurlitzer = redirect_to_sys(encoding)
+        _mighty_wurlitzer = sys_pipes(encoding)
     _mighty_wurlitzer.__enter__()
 
 
-def stop_redirecting_everything():
-    """Stop permanent redirection started by redirect_everything_to_sys"""
+def stop_sys_pipes():
+    """Stop permanent redirection started by sys_pipes_forever"""
     global _mighty_wurlitzer
     if _mighty_wurlitzer is not None:
         _mighty_wurlitzer.__exit__(None, None, None)
