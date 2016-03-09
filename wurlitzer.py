@@ -28,10 +28,10 @@ libc = ctypes.CDLL(None)
 try:
     c_stdout_p = ctypes.c_void_p.in_dll(libc, 'stdout')
     c_stderr_p = ctypes.c_void_p.in_dll(libc, 'stderr')
-except ValueError:
+except ValueError: # pragma: no cover
     # libc.stdout is has a funny name on OS X
-    c_stdout_p = ctypes.c_void_p.in_dll(libc, '__stdoutp')
-    c_stderr_p = ctypes.c_void_p.in_dll(libc, '__stderrp')
+    c_stdout_p = ctypes.c_void_p.in_dll(libc, '__stdoutp') # pragma: no cover
+    c_stderr_p = ctypes.c_void_p.in_dll(libc, '__stderrp') # pragma: no cover
 
 STDOUT = 2
 PIPE = 3
@@ -39,7 +39,7 @@ PIPE = 3
 _default_encoding = getattr(sys.stdin, 'encoding', None) or 'utf8'
 if _default_encoding.lower() == 'ascii':
     # don't respect ascii
-    _default_encoding = 'utf8'
+    _default_encoding = 'utf8' # pragma: no cover
 
 class Wurlitzer(object):
     """Class for Capturing Process-level FD output via dup2
