@@ -6,9 +6,9 @@ from distutils.core import setup
 long_description = """
 Context managers for capturing C-level output::
 
-    from wurlitzer import capture
+    from wurlitzer import pipes
 
-    with capture() as (stdout, stderr):
+    with pipes() as (stdout, stderr):
         call_c_function()
     out = stdout.read()
     err = stderr.read()
