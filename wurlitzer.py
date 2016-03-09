@@ -191,9 +191,10 @@ def capture(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
     if stdout == PIPE:
         stdout_r, stdout_w = os.pipe()
         stdout_w = os.fdopen(stdout_w, 'wb')
-        stdout_r = os.fdopen(stdout_r, 'rb')
         if encoding:
-            stdout_r = io.TextIOWrapper(stdout_r, encoding=encoding)
+            stdout_r = io.open(stdout_r, 'r', encoding=encoding)
+        else:
+            stdout_r = os.fdopen(stdout_r, 'rb')
         stdout_pipe = True
     else:
         stdout_r = stdout_w = stdout
@@ -204,9 +205,10 @@ def capture(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
     elif stderr == PIPE:
         stderr_r, stderr_w = os.pipe()
         stderr_w = os.fdopen(stderr_w, 'wb')
-        stderr_r = os.fdopen(stderr_r, 'rb')
         if encoding:
-            stderr_r = io.TextIOWrapper(stderr_r, encoding=encoding)
+            stderr_r = io.open(stderr_r, 'r', encoding=encoding)
+        else:
+            stderr_r = os.fdopen(stderr_r, 'rb')
         stderr_pipe = True
     else:
         stderr_r = stderr_w = stderr
