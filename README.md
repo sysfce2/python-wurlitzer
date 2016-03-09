@@ -6,7 +6,7 @@ Capture C-level stdout/stderr pipes in Python via `os.dup2`.
 
     pip install wurlitzer
 
-## Usage:
+## Usage
 
 Capture stdout/stderr in pipes:
 
@@ -41,6 +41,10 @@ from wurlitzer import sys_pipes
 with sys_pipes():
     call_some_c_function()
 ```
+
+## Acknowledgments
+
+This package is based on stuff we learned with @takluyver and @karies while working on capturing output from the [Cling Kernel](https://github.com/root-mirror/cling/tree/master/tools/Jupyter/kernel) for Jupyter.
 
 ## Wurlitzer?!
 
