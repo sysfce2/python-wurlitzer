@@ -112,6 +112,9 @@ class Wurlitzer(object):
         pass
     
     def __enter__(self):
+        # flush anything out before starting
+        libc.fflush(c_stdout_p)
+        libc.fflush(c_stderr_p)
         # setup handle
         self._setup_handle()
         
