@@ -42,6 +42,14 @@ with sys_pipes():
     call_some_c_function()
 ```
 
+Or even simpler, enable it as an IPython extension:
+
+```
+%load_ext wurlitzer
+```
+
+To forward all C-level output to IPython during execution.
+
 ## Acknowledgments
 
 This package is based on stuff we learned with @takluyver and @karies while working on capturing output from the [Cling Kernel](https://github.com/root-mirror/cling/tree/master/tools/Jupyter/kernel) for Jupyter.

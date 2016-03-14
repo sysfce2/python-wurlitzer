@@ -261,3 +261,22 @@ def stop_sys_pipes():
         _mighty_wurlitzer.__exit__(None, None, None)
         _mighty_wurlitzer = None
 
+
+def load_ipython_extension(ip):
+    """Register me as an IPython extension
+    
+    Captures all C output during execution and forwards to sys.
+    
+    Use: %load_ext wurlitzer
+    """
+    ip.events.register('pre_execute', sys_pipes_forever)
+    ip.events.register('post_execute', stop_sys_pipes)
+
+
+def unload_ipython_extension(ip):
+    """Unload me as an IPython extension
+    
+    Use: %unload_ext wurlitzer
+    """
+    ip.events.unregister('pre_execute', sys_pipes_forever)
+    ip.events.unregister('post_execute', stop_sys_pipes)
