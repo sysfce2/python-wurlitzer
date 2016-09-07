@@ -267,8 +267,15 @@ def load_ipython_extension(ip):
     
     Captures all C output during execution and forwards to sys.
     
+    Does nothing on terminal IPython.
+    
     Use: %load_ext wurlitzer
     """
+    if not getattr(ip, 'kernel'):
+        warnings.warn(
+            "wurlitzer extension doesn't do anything in terminal IPython"
+        )
+        return
     ip.events.register('pre_execute', sys_pipes_forever)
     ip.events.register('post_execute', stop_sys_pipes)
 
@@ -278,5 +285,7 @@ def unload_ipython_extension(ip):
     
     Use: %unload_ext wurlitzer
     """
+    if not getattr(ip, 'kernel'):
+        return
     ip.events.unregister('pre_execute', sys_pipes_forever)
     ip.events.unregister('post_execute', stop_sys_pipes)
