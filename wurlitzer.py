@@ -90,7 +90,7 @@ class Wurlitzer(object):
     def _decode(self, data):
         """Decode data, if any
         
-        Called before pasing to stdout/stderr streams
+        Called before passing to stdout/stderr streams
         """
         if self.encoding:
             data = data.decode(self.encoding, 'replace')
@@ -118,10 +118,11 @@ class Wurlitzer(object):
         libc.fflush(c_stderr_p)
         # setup handle
         self._setup_handle()
+        self._control_r, self._control_w = os.pipe()
         
         # create pipe for stdout
-        pipes = []
-        names = {}
+        pipes = [self._control_r]
+        names = {self._control_r: 'control'}
         if self._stdout:
             pipe = self._setup_pipe('stdout')
             pipes.append(pipe)
@@ -130,22 +131,34 @@ class Wurlitzer(object):
             pipe = self._setup_pipe('stderr')
             pipes.append(pipe)
             names[pipe] = 'stderr'
-        
+
         def forwarder():
             """Forward bytes on a pipe to stream messages"""
-            while True:
+            done = False
+            draining = False
+            while pipes:
                 # flush libc's buffers before calling select
                 libc.fflush(c_stdout_p)
                 libc.fflush(c_stderr_p)
                 r, w, x = select.select(pipes, [], [], self.flush_interval)
                 if not r:
-                    # nothing to read, next iteration will flush and check again
-                    continue
+                    if draining:
+                        # if we are draining and there's nothing to read, stop
+                        break
+                    else:
+                        # nothing to read, next iteration will flush and check again
+                        continue
                 for pipe in r:
+                    if pipe == self._control_r:
+                        draining = True
+                        os.close(self._control_r)
+                        pipes.remove(self._control_r)
+                        continue
                     name = names[pipe]
                     data = os.read(pipe, 1024)
                     if not data:
-                        # pipe closed, stop polling
+                        # pipe closed, stop polling it
+                        os.close(pipe)
                         pipes.remove(pipe)
                     else:
                         handler = getattr(self, '_handle_%s' % name)
@@ -153,6 +166,9 @@ class Wurlitzer(object):
                 if not pipes:
                     # pipes closed, we are done
                     break
+            # cleanup pipes
+            [ os.close(pipe) for pipe in pipes ]
+
         self.thread = threading.Thread(target=forwarder)
         self.thread.daemon = True
         self.thread.start()
@@ -163,10 +179,12 @@ class Wurlitzer(object):
         # flush the underlying C buffers
         libc.fflush(c_stdout_p)
         libc.fflush(c_stderr_p)
-        # close FDs, signaling output is complete
+        # signal output is complete on control pipe
+        os.write(self._control_w, b'\1')
+        self.thread.join()
+        os.close(self._control_w)
         for real_fd in self._real_fds.values():
             os.close(real_fd)
-        self.thread.join()
         
         # restore original state
         for name, real_fd in self._real_fds.items():
