@@ -16,12 +16,14 @@ __all__ = [
 
 from contextlib import contextmanager
 import ctypes
+import errno
 from fcntl import fcntl, F_GETFL, F_SETFL
 import io
 import os
 import select
 import sys
 import threading
+import time
 import warnings
 
 libc = ctypes.CDLL(None)
@@ -41,6 +43,23 @@ _default_encoding = getattr(sys.stdin, 'encoding', None) or 'utf8'
 if _default_encoding.lower() == 'ascii':
     # don't respect ascii
     _default_encoding = 'utf8' # pragma: no cover
+
+def dup2(a, b, timeout=3):
+    """Like os.dup2, but retry on EBUSY"""
+    dup_err = None
+    # give FDs 3 seconds to not be busy anymore
+    for i in range(int(10 * timeout)):
+        try:
+            return os.dup2(a, b)
+        except OSError as e:
+            dup_err = e
+            if e.errno == errno.EBUSY:
+                time.sleep(0.1)
+            else:
+                raise
+    if dup_err:
+        raise dup_err
+    
 
 class Wurlitzer(object):
     """Class for Capturing Process-level FD output via dup2
@@ -78,7 +97,7 @@ class Wurlitzer(object):
         self._save_fds[name] = save_fd
         
         pipe_out, pipe_in = os.pipe()
-        os.dup2(pipe_in, real_fd)
+        dup2(pipe_in, real_fd)
         os.close(pipe_in)
         self._real_fds[name] = real_fd
         
@@ -189,7 +208,7 @@ class Wurlitzer(object):
         # restore original state
         for name, real_fd in self._real_fds.items():
             save_fd = self._save_fds[name]
-            os.dup2(save_fd, real_fd)
+            dup2(save_fd, real_fd)
             os.close(save_fd)
         # finalize handle
         self._finish_handle()
