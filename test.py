@@ -2,7 +2,10 @@
 from __future__ import print_function
 
 import io
+import os
+from tempfile import TemporaryFile
 import time
+
 import mock
 
 from wurlitzer import (
@@ -73,7 +76,7 @@ def test_sys_pipes():
     with mock.patch('sys.stdout', stdout), mock.patch('sys.stderr', stderr), sys_pipes():
         printf(u"Hellø")
         printf_err(u"Hi, stdérr")
-    
+
     assert stdout.getvalue() == u"Hellø\n"
     assert stderr.getvalue() == u"Hi, stdérr\n"
 
@@ -89,3 +92,24 @@ def test_redirect_everything():
     assert stderr.getvalue() == u"Hi, stdérr\n"
 
 
+def count_fds():
+    """utility for counting file descriptors"""
+    proc_fds = '/proc/{}/fd'.format(os.getpid())
+    if os.path.isdir(proc_fds):
+        return len(proc_fds)
+    else:
+        # this is an approximate count,
+        # but it should at least be stable if we aren't leaking
+        with TemporaryFile() as tf:
+            return tf.fileno()
+
+
+def test_fd_leak():
+    base_count = count_fds()
+    with pipes():
+        print('ok')
+    assert count_fds() == base_count
+    for i in range(10):
+        with pipes():
+            print('ok')
+        assert count_fds() == base_count

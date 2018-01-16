@@ -191,7 +191,7 @@ class Wurlitzer(object):
         self.thread = threading.Thread(target=forwarder)
         self.thread.daemon = True
         self.thread.start()
-        
+
         return self.handle
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -202,9 +202,7 @@ class Wurlitzer(object):
         os.write(self._control_w, b'\1')
         self.thread.join()
         os.close(self._control_w)
-        for real_fd in self._real_fds.values():
-            os.close(real_fd)
-        
+
         # restore original state
         for name, real_fd in self._real_fds.items():
             save_fd = self._save_fds[name]
@@ -217,12 +215,12 @@ class Wurlitzer(object):
 @contextmanager
 def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
     """Capture C-level stdout/stderr in a context manager.
-    
+
     The return value for the context manager is (stdout, stderr).
-    
+
     Examples
     --------
-    
+
     >>> with capture() as (stdout, stderr):
     ...     printf("C-level stdout")
     ... output = stdout.read()
