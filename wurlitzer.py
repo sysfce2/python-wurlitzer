@@ -126,11 +126,11 @@ class Wurlitzer(object):
     def _setup_handle(self):
         """Setup handle for output, if any"""
         self.handle = (self._stdout, self._stderr)
-    
+
     def _finish_handle(self):
         """Finish handle, if anything should be done when it's all wrapped up."""
         pass
-    
+
     def __enter__(self):
         # flush anything out before starting
         libc.fflush(c_stdout_p)
@@ -138,7 +138,7 @@ class Wurlitzer(object):
         # setup handle
         self._setup_handle()
         self._control_r, self._control_w = os.pipe()
-        
+
         # create pipe for stdout
         pipes = [self._control_r]
         names = {self._control_r: 'control'}
@@ -155,17 +155,25 @@ class Wurlitzer(object):
             """Forward bytes on a pipe to stream messages"""
             done = False
             draining = False
+            flush_interval = 0
             while pipes:
-                # flush libc's buffers before calling select
-                libc.fflush(c_stdout_p)
-                libc.fflush(c_stderr_p)
-                r, w, x = select.select(pipes, [], [], self.flush_interval)
-                if not r:
+                r, w, x = select.select(pipes, [], [], flush_interval)
+                if r:
+                    # found something to read, don't block until
+                    # we run out of things to read
+                    flush_interval = 0
+                else:
+                    # nothing to read
                     if draining:
                         # if we are draining and there's nothing to read, stop
                         break
                     else:
-                        # nothing to read, next iteration will flush and check again
+                        # nothing to read, flush the streams
+                        # in case there's something waiting.
+                        # if there's nobody on the reading end, this can block!
+                        libc.fflush(c_stdout_p)
+                        libc.fflush(c_stderr_p)
+                        flush_interval = self.flush_interval
                         continue
                 for pipe in r:
                     if pipe == self._control_r:

@@ -27,7 +27,7 @@ def test_pipes():
     with pipes(stdout=PIPE, stderr=PIPE) as (stdout, stderr):
         printf(u"Hellø")
         printf_err(u"Hi, stdérr")
-    
+
     assert stdout.read() == u"Hellø\n"
     assert stderr.read() == u"Hi, stdérr\n"
 
@@ -35,7 +35,7 @@ def test_pipe_bytes():
     with pipes(encoding=None) as (stdout, stderr):
         printf(u"Hellø")
         printf_err(u"Hi, stdérr")
-    
+
     assert stdout.read() == u"Hellø\n".encode('utf8')
     assert stderr.read() == u"Hi, stdérr\n".encode('utf8')
 
@@ -47,7 +47,7 @@ def test_forward():
         printf_err(u"Hi, stdérr")
         assert _stdout is stdout
         assert _stderr is stderr
-    
+
     assert stdout.getvalue() == u"Hellø\n"
     assert stderr.getvalue() == u"Hi, stdérr\n"
 
@@ -59,7 +59,7 @@ def test_pipes_stderr():
         printf_err(u"Hi, stdérr")
         assert _stdout is stdout
         assert _stderr is None
-    
+
     assert stdout.getvalue() == u"Hellø\nHi, stdérr\n"
 
 def test_flush():
@@ -67,7 +67,7 @@ def test_flush():
     w = Wurlitzer(stdout=stdout, stderr=STDOUT)
     with w:
         printf_err(u"Hellø")
-        time.sleep(1)
+        time.sleep(0.5)
         assert stdout.getvalue().strip() == u"Hellø"
 
 def test_sys_pipes():
@@ -113,3 +113,12 @@ def test_fd_leak():
         with pipes():
             print('ok')
         assert count_fds() == base_count
+
+
+def test_buffer_full():
+    with pipes(stdout=None, stderr=io.StringIO()) as (stdout, stderr):
+        long_string = "x" * 1000000  # create a very long string
+        printf_err(long_string)
+
+    # Test never reaches here as the process hangs.
+    assert stderr.getvalue() == long_string + "\n"
