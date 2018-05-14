@@ -20,6 +20,10 @@ import errno
 from fcntl import fcntl, F_GETFL, F_SETFL
 import io
 import os
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
 import select
 import sys
 import threading
@@ -44,6 +48,7 @@ if _default_encoding.lower() == 'ascii':
     # don't respect ascii
     _default_encoding = 'utf8' # pragma: no cover
 
+
 def dup2(a, b, timeout=3):
     """Like os.dup2, but retry on EBUSY"""
     dup_err = None
@@ -59,7 +64,7 @@ def dup2(a, b, timeout=3):
                 raise
     if dup_err:
         raise dup_err
-    
+
 
 class Wurlitzer(object):
     """Class for Capturing Process-level FD output via dup2
@@ -90,7 +95,7 @@ class Wurlitzer(object):
         self._handlers = {}
         self._handlers['stderr'] = self._handle_stderr
         self._handlers['stdout'] = self._handle_stdout
-    
+
     def _setup_pipe(self, name):
         real_fd = getattr(sys, '__%s__' % name).fileno()
         save_fd = os.dup(real_fd)
@@ -151,15 +156,30 @@ class Wurlitzer(object):
             pipes.append(pipe)
             names[pipe] = 'stderr'
 
+        # flush pipes in a background thread to avoid blocking
+        # the reader thread when the buffer is full
+        flush_queue = Queue()
+
+        def flush_main():
+            while True:
+                msg = flush_queue.get()
+                if msg == 'stop':
+                    return
+                libc.fflush(c_stdout_p)
+                libc.fflush(c_stderr_p)
+
+        flush_thread = threading.Thread(target=flush_main)
+        flush_thread.daemon = True
+        flush_thread.start()
+
         def forwarder():
             """Forward bytes on a pipe to stream messages"""
-            done = False
             draining = False
             flush_interval = 0
             while pipes:
                 r, w, x = select.select(pipes, [], [], flush_interval)
                 if r:
-                    # found something to read, don't block until
+                    # found something to read, don't block select until
                     # we run out of things to read
                     flush_interval = 0
                 else:
@@ -168,11 +188,10 @@ class Wurlitzer(object):
                         # if we are draining and there's nothing to read, stop
                         break
                     else:
-                        # nothing to read, flush the streams
-                        # in case there's something waiting.
-                        # if there's nobody on the reading end, this can block!
-                        libc.fflush(c_stdout_p)
-                        libc.fflush(c_stderr_p)
+                        # nothing to read, get ready to wait.
+                        # flush the streams in case there's something waiting
+                        # to be written.
+                        flush_queue.put('flush')
                         flush_interval = self.flush_interval
                         continue
                 for pipe in r:
@@ -193,8 +212,11 @@ class Wurlitzer(object):
                 if not pipes:
                     # pipes closed, we are done
                     break
+            # stop flush thread
+            flush_queue.put('stop')
+            flush_thread.join()
             # cleanup pipes
-            [ os.close(pipe) for pipe in pipes ]
+            [os.close(pipe) for pipe in pipes]
 
         self.thread = threading.Thread(target=forwarder)
         self.thread.daemon = True
