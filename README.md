@@ -2,6 +2,8 @@
 
 Capture C-level stdout/stderr pipes in Python via `os.dup2`.
 
+For more details on why this is needed, please read [this blog post]( https://eli.thegreenplace.net/2015/redirecting-all-kinds-of-stdout-in-python/ ).
+
 ## Install
 
     pip install wurlitzer
