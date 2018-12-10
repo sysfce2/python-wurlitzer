@@ -177,7 +177,8 @@ class Wurlitzer(object):
             draining = False
             flush_interval = 0
             poller = select.poll()
-            for pipe_ in pipes: poller.register(pipe_)
+            for pipe_ in pipes:
+                poller.register(pipe_, select.POLLIN | select.POLLPRI)
 
             while pipes:
                 events = poller.poll(flush_interval)
