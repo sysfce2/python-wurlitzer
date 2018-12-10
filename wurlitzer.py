@@ -202,9 +202,9 @@ class Wurlitzer(object):
                 for fd, flags in events:
                     if fd == self._control_r:
                         draining = True
-                        os.close(self._control_r)
                         pipes.remove(self._control_r)
                         poller.unregister(self._control_r)
+                        os.close(self._control_r)
                         continue
                     name = names[fd]
                     data = os.read(fd, 1024)
