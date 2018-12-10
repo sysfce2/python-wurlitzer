@@ -210,9 +210,9 @@ class Wurlitzer(object):
                     data = os.read(fd, 1024)
                     if not data:
                         # pipe closed, stop polling it
-                        os.close(fd)
                         pipes.remove(fd)
                         poller.unregister(fd)
+                        os.close(fd)
                     else:
                         handler = getattr(self, '_handle_%s' % name)
                         handler(data)
