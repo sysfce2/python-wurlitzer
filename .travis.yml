@@ -5,6 +5,7 @@ python:
   - 3.4
   - 3.5
   - 3.6
+  - 3.7
   - nightly
 branches:
   only:
@@ -15,3 +16,9 @@ script:
   - py.test --cov wurlitzer test.py
 after_success:
   - codecov
+matrix:
+  include:
+    - os: osx
+      python: 3.6
+    - os: osx
+      python: 2.7
