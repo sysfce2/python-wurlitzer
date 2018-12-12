@@ -5,7 +5,6 @@ python:
   - 3.4
   - 3.5
   - 3.6
-  - 3.7
   - nightly
 branches:
   only:
@@ -22,3 +21,6 @@ matrix:
       python: 3.6
     - os: osx
       python: 2.7
+    - os: linux
+      dist: xenial
+      python: 3.7
