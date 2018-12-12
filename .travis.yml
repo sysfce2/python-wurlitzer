@@ -31,9 +31,11 @@ env:
 matrix:
   include:
     - os: osx
+      language: generic
       env:
         - PY=2
     - os: osx
+      language: generic
       env:
         - PY=3
     - os: linux
