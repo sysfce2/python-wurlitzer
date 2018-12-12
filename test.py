@@ -56,6 +56,7 @@ def test_pipes_stderr():
     with pipes(stdout=stdout, stderr=STDOUT) as (_stdout, _stderr):
         printf(u"Hellø")
         libc.fflush(c_stdout_p)
+        time.sleep(0.1)
         printf_err(u"Hi, stdérr")
         assert _stdout is stdout
         assert _stderr is None
