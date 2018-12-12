@@ -181,7 +181,7 @@ class Wurlitzer(object):
                 poller.register(pipe_, select.POLLIN | select.POLLPRI)
 
             while pipes:
-                events = poller.poll(flush_interval)
+                events = poller.poll(int(flush_interval * 1000))
                 #r = all([(r_[1] == (select.POLLIN | select.POLLPRI)) for r_ in events])
                 if events:
                     # found something to read, don't block select until
