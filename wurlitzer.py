@@ -176,9 +176,14 @@ class Wurlitzer(object):
             """Forward bytes on a pipe to stream messages"""
             draining = False
             flush_interval = 0
+            poller = select.poll()
+            for pipe_ in pipes:
+                poller.register(pipe_, select.POLLIN | select.POLLPRI)
+
             while pipes:
-                r, w, x = select.select(pipes, [], [], flush_interval)
-                if r:
+                events = poller.poll(flush_interval)
+                #r = all([(r_[1] == (select.POLLIN | select.POLLPRI)) for r_ in events])
+                if events:
                     # found something to read, don't block select until
                     # we run out of things to read
                     flush_interval = 0
@@ -194,18 +199,21 @@ class Wurlitzer(object):
                         flush_queue.put('flush')
                         flush_interval = self.flush_interval
                         continue
-                for pipe in r:
-                    if pipe == self._control_r:
+
+                for fd, flags in events:
+                    if fd == self._control_r:
                         draining = True
-                        os.close(self._control_r)
                         pipes.remove(self._control_r)
+                        poller.unregister(self._control_r)
+                        os.close(self._control_r)
                         continue
-                    name = names[pipe]
-                    data = os.read(pipe, 1024)
+                    name = names[fd]
+                    data = os.read(fd, 1024)
                     if not data:
                         # pipe closed, stop polling it
-                        os.close(pipe)
-                        pipes.remove(pipe)
+                        pipes.remove(fd)
+                        poller.unregister(fd)
+                        os.close(fd)
                     else:
                         handler = getattr(self, '_handle_%s' % name)
                         handler(data)
