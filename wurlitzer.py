@@ -325,7 +325,7 @@ def sys_pipes_forever(encoding=_default_encoding):
     global _mighty_wurlitzer
     if _mighty_wurlitzer is None:
         _mighty_wurlitzer = sys_pipes(encoding)
-    _mighty_wurlitzer.__enter__()
+        _mighty_wurlitzer.__enter__()
 
 
 def stop_sys_pipes():
