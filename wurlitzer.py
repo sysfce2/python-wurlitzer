@@ -316,24 +316,30 @@ def sys_pipes(encoding=_default_encoding):
 
 
 _mighty_wurlitzer = None
+_lock = threading.Lock()
+
 
 def sys_pipes_forever(encoding=_default_encoding):
     """Redirect all C output to sys.stdout/err
-    
+
     This is not a context manager; it turns on C-forwarding permanently.
     """
     global _mighty_wurlitzer
-    if _mighty_wurlitzer is None:
-        _mighty_wurlitzer = sys_pipes(encoding)
-        _mighty_wurlitzer.__enter__()
+    global _lock
+    with _lock:
+        if _mighty_wurlitzer is None:
+            _mighty_wurlitzer = sys_pipes(encoding)
+            _mighty_wurlitzer.__enter__()
 
 
 def stop_sys_pipes():
     """Stop permanent redirection started by sys_pipes_forever"""
     global _mighty_wurlitzer
-    if _mighty_wurlitzer is not None:
-        _mighty_wurlitzer.__exit__(None, None, None)
-        _mighty_wurlitzer = None
+    global _lock
+    with _lock:
+        if _mighty_wurlitzer is not None:
+            _mighty_wurlitzer.__exit__(None, None, None)
+            _mighty_wurlitzer = None
 
 
 def load_ipython_extension(ip):
