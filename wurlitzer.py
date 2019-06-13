@@ -316,7 +316,7 @@ def sys_pipes(encoding=_default_encoding):
 
 
 _mighty_wurlitzer = None
-_lock = threading.Lock()
+_mighty_lock = threading.Lock()
 
 
 def sys_pipes_forever(encoding=_default_encoding):
@@ -325,8 +325,7 @@ def sys_pipes_forever(encoding=_default_encoding):
     This is not a context manager; it turns on C-forwarding permanently.
     """
     global _mighty_wurlitzer
-    global _lock
-    with _lock:
+    with _mighty_lock:
         if _mighty_wurlitzer is None:
             _mighty_wurlitzer = sys_pipes(encoding)
             _mighty_wurlitzer.__enter__()
@@ -335,8 +334,7 @@ def sys_pipes_forever(encoding=_default_encoding):
 def stop_sys_pipes():
     """Stop permanent redirection started by sys_pipes_forever"""
     global _mighty_wurlitzer
-    global _lock
-    with _lock:
+    with _mighty_lock:
         if _mighty_wurlitzer is not None:
             _mighty_wurlitzer.__exit__(None, None, None)
             _mighty_wurlitzer = None
