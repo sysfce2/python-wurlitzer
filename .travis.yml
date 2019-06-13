@@ -19,7 +19,8 @@ before_install:
       source ./test-env/bin/activate
     fi
 install:
-  - pip install . -r dev-requirements.txt
+  - pip install --upgrade setuptools pip
+  - pip install --upgrade . -r dev-requirements.txt
   - pip freeze
 script:
   - py.test --cov wurlitzer test.py
