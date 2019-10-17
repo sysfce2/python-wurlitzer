@@ -20,11 +20,18 @@ import errno
 from fcntl import fcntl, F_GETFL, F_SETFL
 import io
 import os
+
 try:
     from queue import Queue
 except ImportError:
     from Queue import Queue
-import select
+
+try:
+    import selectors
+except ImportError:
+    # py < 3.4
+    import selectors2 as selectors
+
 import sys
 import threading
 import time
@@ -176,13 +183,13 @@ class Wurlitzer(object):
             """Forward bytes on a pipe to stream messages"""
             draining = False
             flush_interval = 0
-            poller = select.poll()
+            poller = selectors.DefaultSelector()
+
             for pipe_ in pipes:
-                poller.register(pipe_, select.POLLIN | select.POLLPRI)
+                poller.register(pipe_, selectors.EVENT_READ)
 
             while pipes:
-                events = poller.poll(int(flush_interval * 1000))
-                #r = all([(r_[1] == (select.POLLIN | select.POLLPRI)) for r_ in events])
+                events = poller.select(flush_interval)
                 if events:
                     # found something to read, don't block select until
                     # we run out of things to read
@@ -200,7 +207,8 @@ class Wurlitzer(object):
                         flush_interval = self.flush_interval
                         continue
 
-                for fd, flags in events:
+                for selector_key, flags in events:
+                    fd = selector_key.fd
                     if fd == self._control_r:
                         draining = True
                         pipes.remove(self._control_r)
