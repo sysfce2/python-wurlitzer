@@ -33,6 +33,7 @@ setup_args = dict(
     author="Min RK",
     author_email="benjaminrk@gmail.com",
     description="Capture C-level output in context managers",
+    install_requires=["selectors2; python_version<'3.4'"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/minrk/wurlitzer",
