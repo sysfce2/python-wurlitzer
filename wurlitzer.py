@@ -143,10 +143,19 @@ class Wurlitzer(object):
         """Finish handle, if anything should be done when it's all wrapped up."""
         pass
 
-    def __enter__(self):
-        # flush anything out before starting
+    def _flush(self):
+        """flush sys.stdout/err and low-level FDs"""
+        if self._stdout and sys.stdout:
+            sys.stdout.flush()
+        if self._stderr and sys.stderr:
+            sys.stderr.flush()
+
         libc.fflush(c_stdout_p)
         libc.fflush(c_stderr_p)
+
+    def __enter__(self):
+        # flush anything out before starting
+        self._flush()
         # setup handle
         self._setup_handle()
         self._control_r, self._control_w = os.pipe()
@@ -241,9 +250,9 @@ class Wurlitzer(object):
         return self.handle
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # flush the underlying C buffers
-        libc.fflush(c_stdout_p)
-        libc.fflush(c_stderr_p)
+        # flush before exiting
+        self._flush()
+
         # signal output is complete on control pipe
         os.write(self._control_w, b'\1')
         self.thread.join()
