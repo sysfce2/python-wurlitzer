@@ -181,8 +181,7 @@ class Wurlitzer(object):
                 msg = flush_queue.get()
                 if msg == 'stop':
                     return
-                libc.fflush(c_stdout_p)
-                libc.fflush(c_stderr_p)
+                self._flush()
 
         flush_thread = threading.Thread(target=flush_main)
         flush_thread.daemon = True
