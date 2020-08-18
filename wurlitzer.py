@@ -380,6 +380,9 @@ def unload_ipython_extension(ip):
     Use: %unload_ext wurlitzer
     """
     if not getattr(ip, 'kernel'):
-        return
+        return  
     ip.events.unregister('pre_execute', sys_pipes_forever)
     ip.events.unregister('post_execute', stop_sys_pipes)
+    # sys_pipes_forever was called in pre_execute
+    # after unregister we need to call it explicitly:
+    stop_sys_pipes()
