@@ -365,7 +365,7 @@ def load_ipython_extension(ip):
     
     Use: %load_ext wurlitzer
     """
-    if not getattr(ip, 'kernel'):
+    if not getattr(ip, 'kernel', None):
         warnings.warn(
             "wurlitzer extension doesn't do anything in terminal IPython"
         )
@@ -379,7 +379,7 @@ def unload_ipython_extension(ip):
     
     Use: %unload_ext wurlitzer
     """
-    if not getattr(ip, 'kernel'):
+    if not getattr(ip, 'kernel', None):
         return  
     ip.events.unregister('pre_execute', sys_pipes_forever)
     ip.events.unregister('post_execute', stop_sys_pipes)
