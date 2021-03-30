@@ -3,25 +3,34 @@ from __future__ import print_function
 
 import io
 import os
-from tempfile import TemporaryFile
 import time
+from tempfile import TemporaryFile
 
 import mock
 
 from wurlitzer import (
-    libc, pipes, STDOUT, PIPE, c_stderr_p, c_stdout_p,
-    sys_pipes, sys_pipes_forever,
-    stop_sys_pipes,
+    PIPE,
+    STDOUT,
     Wurlitzer,
+    c_stderr_p,
+    c_stdout_p,
+    libc,
+    pipes,
+    stop_sys_pipes,
+    sys_pipes,
+    sys_pipes_forever,
 )
+
 
 def printf(msg):
     """Call C printf"""
     libc.printf((msg + '\n').encode('utf8'))
 
+
 def printf_err(msg):
     """Cal C fprintf on stderr"""
     libc.fprintf(c_stderr_p, (msg + '\n').encode('utf8'))
+
 
 def test_pipes():
     with pipes(stdout=PIPE, stderr=PIPE) as (stdout, stderr):
@@ -31,6 +40,7 @@ def test_pipes():
     assert stdout.read() == u"Hellø\n"
     assert stderr.read() == u"Hi, stdérr\n"
 
+
 def test_pipe_bytes():
     with pipes(encoding=None) as (stdout, stderr):
         printf(u"Hellø")
@@ -38,6 +48,7 @@ def test_pipe_bytes():
 
     assert stdout.read() == u"Hellø\n".encode('utf8')
     assert stderr.read() == u"Hi, stdérr\n".encode('utf8')
+
 
 def test_forward():
     stdout = io.StringIO()
@@ -51,6 +62,7 @@ def test_forward():
     assert stdout.getvalue() == u"Hellø\n"
     assert stderr.getvalue() == u"Hi, stdérr\n"
 
+
 def test_pipes_stderr():
     stdout = io.StringIO()
     with pipes(stdout=stdout, stderr=STDOUT) as (_stdout, _stderr):
@@ -63,6 +75,7 @@ def test_pipes_stderr():
 
     assert stdout.getvalue() == u"Hellø\nHi, stdérr\n"
 
+
 def test_flush():
     stdout = io.StringIO()
     w = Wurlitzer(stdout=stdout, stderr=STDOUT)
@@ -71,15 +84,19 @@ def test_flush():
         time.sleep(0.5)
         assert stdout.getvalue().strip() == u"Hellø"
 
+
 def test_sys_pipes():
     stdout = io.StringIO()
     stderr = io.StringIO()
-    with mock.patch('sys.stdout', stdout), mock.patch('sys.stderr', stderr), sys_pipes():
+    with mock.patch('sys.stdout', stdout), mock.patch(
+        'sys.stderr', stderr
+    ), sys_pipes():
         printf(u"Hellø")
         printf_err(u"Hi, stdérr")
 
     assert stdout.getvalue() == u"Hellø\n"
     assert stderr.getvalue() == u"Hi, stdérr\n"
+
 
 def test_redirect_everything():
     stdout = io.StringIO()
