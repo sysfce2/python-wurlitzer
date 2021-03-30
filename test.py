@@ -6,7 +6,10 @@ import os
 import time
 from tempfile import TemporaryFile
 
-import mock
+try:
+    from unitest import mock
+except ImportError:
+    import mock
 
 from wurlitzer import (
     PIPE,
