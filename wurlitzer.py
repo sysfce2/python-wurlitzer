@@ -357,6 +357,9 @@ def stop_sys_pipes():
             _mighty_wurlitzer = None
 
 
+_extension_enabled = False
+
+
 def load_ipython_extension(ip):
     """Register me as an IPython extension
 
@@ -366,11 +369,19 @@ def load_ipython_extension(ip):
 
     Use: %load_ext wurlitzer
     """
+    global _extension_enabled
+
     if not getattr(ip, 'kernel', None):
         warnings.warn("wurlitzer extension doesn't do anything in terminal IPython")
         return
+    for name in ("__stdout__", "__stderr__"):
+        if getattr(sys, name) is None:
+            warnings.warn("sys.{} is None. Wurlitzer can't capture output without it.")
+            return
+
     ip.events.register('pre_execute', sys_pipes_forever)
     ip.events.register('post_execute', stop_sys_pipes)
+    _extension_enabled = True
 
 
 def unload_ipython_extension(ip):
@@ -378,10 +389,13 @@ def unload_ipython_extension(ip):
 
     Use: %unload_ext wurlitzer
     """
-    if not getattr(ip, 'kernel', None):
+    global _extension_enabled
+    if not _extension_enabled:
         return
+
     ip.events.unregister('pre_execute', sys_pipes_forever)
     ip.events.unregister('post_execute', stop_sys_pipes)
     # sys_pipes_forever was called in pre_execute
     # after unregister we need to call it explicitly:
     stop_sys_pipes()
+    _extension_enabled = False
