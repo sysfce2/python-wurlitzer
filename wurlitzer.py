@@ -14,12 +14,12 @@ __all__ = [
     'Wurlitzer',
 ]
 
-from contextlib import contextmanager
 import ctypes
 import errno
-from fcntl import fcntl, F_GETFL, F_SETFL
 import io
 import os
+from contextlib import contextmanager
+from fcntl import F_GETFL, F_SETFL, fcntl
 
 try:
     from queue import Queue
@@ -42,10 +42,10 @@ libc = ctypes.CDLL(None)
 try:
     c_stdout_p = ctypes.c_void_p.in_dll(libc, 'stdout')
     c_stderr_p = ctypes.c_void_p.in_dll(libc, 'stderr')
-except ValueError: # pragma: no cover
+except ValueError:  # pragma: no cover
     # libc.stdout is has a funny name on OS X
-    c_stdout_p = ctypes.c_void_p.in_dll(libc, '__stdoutp') # pragma: no cover
-    c_stderr_p = ctypes.c_void_p.in_dll(libc, '__stderrp') # pragma: no cover
+    c_stdout_p = ctypes.c_void_p.in_dll(libc, '__stdoutp')  # pragma: no cover
+    c_stderr_p = ctypes.c_void_p.in_dll(libc, '__stderrp')  # pragma: no cover
 
 STDOUT = 2
 PIPE = 3
@@ -53,7 +53,7 @@ PIPE = 3
 _default_encoding = getattr(sys.stdin, 'encoding', None) or 'utf8'
 if _default_encoding.lower() == 'ascii':
     # don't respect ascii
-    _default_encoding = 'utf8' # pragma: no cover
+    _default_encoding = 'utf8'  # pragma: no cover
 
 
 def dup2(a, b, timeout=3):
@@ -75,11 +75,12 @@ def dup2(a, b, timeout=3):
 
 class Wurlitzer(object):
     """Class for Capturing Process-level FD output via dup2
-    
+
     Typically used via `wurlitzer.capture`
     """
+
     flush_interval = 0.2
-    
+
     def __init__(self, stdout=None, stderr=None, encoding=_default_encoding):
         """
         Parameters
@@ -107,34 +108,34 @@ class Wurlitzer(object):
         real_fd = getattr(sys, '__%s__' % name).fileno()
         save_fd = os.dup(real_fd)
         self._save_fds[name] = save_fd
-        
+
         pipe_out, pipe_in = os.pipe()
         dup2(pipe_in, real_fd)
         os.close(pipe_in)
         self._real_fds[name] = real_fd
-        
+
         # make pipe_out non-blocking
         flags = fcntl(pipe_out, F_GETFL)
-        fcntl(pipe_out, F_SETFL, flags|os.O_NONBLOCK)
+        fcntl(pipe_out, F_SETFL, flags | os.O_NONBLOCK)
         return pipe_out
-    
+
     def _decode(self, data):
         """Decode data, if any
-        
+
         Called before passing to stdout/stderr streams
         """
         if self.encoding:
             data = data.decode(self.encoding, 'replace')
         return data
-    
+
     def _handle_stdout(self, data):
         if self._stdout:
             self._stdout.write(self._decode(data))
-    
+
     def _handle_stderr(self, data):
         if self._stderr:
             self._stderr.write(self._decode(data))
-    
+
     def _setup_handle(self):
         """Setup handle for output, if any"""
         self.handle = (self._stdout, self._stderr)
@@ -323,9 +324,9 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
 
 def sys_pipes(encoding=_default_encoding):
     """Redirect C-level stdout/stderr to sys.stdout/stderr
-    
+
     This is useful of sys.sdout/stderr are already being forwarded somewhere.
-    
+
     DO NOT USE THIS if sys.stdout and sys.stderr are not already being forwarded.
     """
     return pipes(sys.stdout, sys.stderr, encoding=encoding)
@@ -358,17 +359,15 @@ def stop_sys_pipes():
 
 def load_ipython_extension(ip):
     """Register me as an IPython extension
-    
+
     Captures all C output during execution and forwards to sys.
-    
+
     Does nothing on terminal IPython.
-    
+
     Use: %load_ext wurlitzer
     """
     if not getattr(ip, 'kernel', None):
-        warnings.warn(
-            "wurlitzer extension doesn't do anything in terminal IPython"
-        )
+        warnings.warn("wurlitzer extension doesn't do anything in terminal IPython")
         return
     ip.events.register('pre_execute', sys_pipes_forever)
     ip.events.register('post_execute', stop_sys_pipes)
@@ -376,11 +375,11 @@ def load_ipython_extension(ip):
 
 def unload_ipython_extension(ip):
     """Unload me as an IPython extension
-    
+
     Use: %unload_ext wurlitzer
     """
     if not getattr(ip, 'kernel', None):
-        return  
+        return
     ip.events.unregister('pre_execute', sys_pipes_forever)
     ip.events.unregister('post_execute', stop_sys_pipes)
     # sys_pipes_forever was called in pre_execute

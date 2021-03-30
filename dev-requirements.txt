@@ -1,4 +1,4 @@
 codecov
-pytest-cov
+mock # python_version < '3.0'
 pytest>=2.8
-mock
+pytest-cov
