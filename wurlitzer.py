@@ -29,13 +29,57 @@ from queue import Queue
 
 libc = ctypes.CDLL(None)
 
+
+def _get_streams_cffi():
+    """Use CFFI to lookup stdout/stderr pointers
+
+    Should work ~everywhere, but requires compilation
+    """
+    try:
+        import cffi
+    except ImportError:
+        raise ImportError(
+            "Failed to lookup stdout symbols in libc. Fallback requires cffi."
+        )
+
+    try:
+        _ffi = cffi.FFI()
+        _ffi.cdef("const size_t c_stdout_p();")
+        _ffi.cdef("const size_t c_stderr_p();")
+        _lib = _ffi.verify(
+            '\n'.join(
+                [
+                    "#include <stdio.h>",
+                    "const size_t c_stdout_p() { return (size_t) (void*) stdout; }",
+                    "const size_t c_stderr_p() { return (size_t) (void*) stderr; }",
+                ]
+            )
+        )
+        c_stdout_p = ctypes.c_void_p(_lib.c_stdout_p())
+        c_stderr_p = ctypes.c_void_p(_lib.c_stderr_p())
+    except Exception as e:
+        warnings.warn(
+            "Failed to lookup stdout with cffi: {}.\nStreams may not be flushed.".format(
+                e
+            )
+        )
+        return (None, None)
+    else:
+        return c_stdout_p, c_stderr_p
+
+
+c_stdout_p = c_stderr_p = None
 try:
     c_stdout_p = ctypes.c_void_p.in_dll(libc, 'stdout')
     c_stderr_p = ctypes.c_void_p.in_dll(libc, 'stderr')
-except ValueError:  # pragma: no cover
-    # libc.stdout is has a funny name on OS X
-    c_stdout_p = ctypes.c_void_p.in_dll(libc, '__stdoutp')  # pragma: no cover
-    c_stderr_p = ctypes.c_void_p.in_dll(libc, '__stderrp')  # pragma: no cover
+except ValueError:
+    # libc.stdout has a funny name on macOS
+    try:
+        c_stdout_p = ctypes.c_void_p.in_dll(libc, '__stdoutp')
+        c_stderr_p = ctypes.c_void_p.in_dll(libc, '__stderrp')
+    except ValueError:
+        c_stdout_p, c_stderr_p = _get_streams_cffi()
+
 
 STDOUT = 2
 PIPE = 3
@@ -141,8 +185,11 @@ class Wurlitzer(object):
         if self._stderr and sys.stderr:
             sys.stderr.flush()
 
-        libc.fflush(c_stdout_p)
-        libc.fflush(c_stderr_p)
+        if c_stdout_p is not None:
+            libc.fflush(c_stdout_p)
+
+        if c_stderr_p is not None:
+            libc.fflush(c_stderr_p)
 
     def __enter__(self):
         # flush anything out before starting
