@@ -3,14 +3,12 @@ from __future__ import print_function
 
 import io
 import os
+import platform
 import time
 from tempfile import TemporaryFile
+from unittest import mock
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+import wurlitzer
 from wurlitzer import (
     PIPE,
     STDOUT,
@@ -152,3 +150,11 @@ def test_buffer_full_default():
 
     # Test never reaches here as the process hangs.
     assert stdout.read() == long_string + "\n"
+
+
+def test_pipe_max_size():
+    max_pipe_size = wurlitzer._get_max_pipe_size()
+    if platform.system() == 'Linux':
+        assert 65535 <= max_pipe_size <= 1024 * 1024
+    else:
+        assert max_pipe_size is None

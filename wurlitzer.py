@@ -18,6 +18,7 @@ import ctypes
 import errno
 import io
 import os
+import platform
 import selectors
 import sys
 import threading
@@ -25,7 +26,14 @@ import time
 import warnings
 from contextlib import contextmanager
 from fcntl import F_GETFL, F_SETFL, fcntl
+from functools import lru_cache
 from queue import Queue
+
+try:
+    from fcntl import F_SETPIPE_SZ
+except ImportError:
+    # ref: linux fcntl.h
+    F_SETPIPE_SZ = 1024 + 7
 
 libc = ctypes.CDLL(None)
 
@@ -63,15 +71,56 @@ def dup2(a, b, timeout=3):
         raise dup_err
 
 
-class Wurlitzer(object):
+@lru_cache()
+def _get_max_pipe_size():
+    """Get max pipe size
+
+    Reads /proc/sys/fs/pipe-max-size on Linux.
+    Always returns None elsewhere.
+
+    Returns integer (up to 1MB),
+    or None if no value can be determined.
+
+    Adapted from wal-e, (c) 2018, WAL-E Contributors
+    used under BSD-3-clause
+    """
+    if platform.system() != 'Linux':
+        return
+
+    # If Linux procfs (or something that looks like it) exposes its
+    # maximum F_SETPIPE_SZ, adjust the default buffer sizes.
+    try:
+        with open('/proc/sys/fs/pipe-max-size', 'r') as f:
+            # Figure out OS max pipe size
+            pipe_max_size = int(f.read())
+    except Exception:
+        pass
+    else:
+        if pipe_max_size > 1024 * 1024:
+            # avoid unusually large values, limit to 1MB
+            return 1024 * 1024
+        elif pipe_max_size <= 65536:
+            # smaller than default, don't do anything
+            return None
+        else:
+            return pipe_max_size
+
+
+class Wurlitzer:
     """Class for Capturing Process-level FD output via dup2
 
-    Typically used via `wurlitzer.capture`
+    Typically used via `wurlitzer.pipes`
     """
 
     flush_interval = 0.2
 
-    def __init__(self, stdout=None, stderr=None, encoding=_default_encoding):
+    def __init__(
+        self,
+        stdout=None,
+        stderr=None,
+        encoding=_default_encoding,
+        bufsize=_get_max_pipe_size(),
+    ):
         """
         Parameters
         ----------
@@ -81,6 +130,10 @@ class Wurlitzer(object):
             The stream for forwarding stderr.
         encoding: str or None
             The encoding to use, if streams should be interpreted as text.
+        bufsize: int or None
+            Set pipe buffer size using fcntl F_SETPIPE_SZ (linux only)
+            default: use /proc/sys/fs/pipe-max-size up to a max of 1MB
+            if 0, will do nothing.
         """
         self._stdout = stdout
         if stderr == STDOUT:
@@ -88,6 +141,9 @@ class Wurlitzer(object):
         else:
             self._stderr = stderr
         self.encoding = encoding
+        if bufsize is None:
+            bufsize = _get_max_pipe_size()
+        self._bufsize = bufsize
         self._save_fds = {}
         self._real_fds = {}
         self._handlers = {}
@@ -103,6 +159,14 @@ class Wurlitzer(object):
         dup2(pipe_in, real_fd)
         os.close(pipe_in)
         self._real_fds[name] = real_fd
+
+        # set max pipe buffer size (linux only)
+        if self._bufsize:
+            try:
+                fcntl(pipe_in, F_SETPIPE_SZ, self._bufsize)
+            except OSError:
+                # ignore failure to set pipe size
+                pass
 
         # make pipe_out non-blocking
         flags = fcntl(pipe_out, F_GETFL)
@@ -259,7 +323,7 @@ class Wurlitzer(object):
 
 
 @contextmanager
-def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
+def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding, bufsize=None):
     """Capture C-level stdout/stderr in a context manager.
 
     The return value for the context manager is (stdout, stderr).
@@ -299,7 +363,7 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
         stderr_pipe = True
     else:
         stderr_r = stderr_w = stderr
-    w = Wurlitzer(stdout=stdout_w, stderr=stderr_w, encoding=encoding)
+    w = Wurlitzer(stdout=stdout_w, stderr=stderr_w, encoding=encoding, bufsize=bufsize)
     try:
         with w:
             yield stdout_r, stderr_r
@@ -313,21 +377,21 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
             stderr_r.seek(0)
 
 
-def sys_pipes(encoding=_default_encoding):
+def sys_pipes(encoding=_default_encoding, bufsize=None):
     """Redirect C-level stdout/stderr to sys.stdout/stderr
 
     This is useful of sys.sdout/stderr are already being forwarded somewhere.
 
     DO NOT USE THIS if sys.stdout and sys.stderr are not already being forwarded.
     """
-    return pipes(sys.stdout, sys.stderr, encoding=encoding)
+    return pipes(sys.stdout, sys.stderr, encoding=encoding, bufsize=bufsize)
 
 
 _mighty_wurlitzer = None
 _mighty_lock = threading.Lock()
 
 
-def sys_pipes_forever(encoding=_default_encoding):
+def sys_pipes_forever(encoding=_default_encoding, bufsize=None):
     """Redirect all C output to sys.stdout/err
 
     This is not a context manager; it turns on C-forwarding permanently.
@@ -335,7 +399,7 @@ def sys_pipes_forever(encoding=_default_encoding):
     global _mighty_wurlitzer
     with _mighty_lock:
         if _mighty_wurlitzer is None:
-            _mighty_wurlitzer = sys_pipes(encoding)
+            _mighty_wurlitzer = sys_pipes(encoding, bufsize)
             _mighty_wurlitzer.__enter__()
 
 
