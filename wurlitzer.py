@@ -4,7 +4,7 @@ Use `wurlitzer.pipes` or `wurlitzer.sys_pipes` as context managers.
 """
 from __future__ import print_function
 
-__version__ = '2.1.2.dev'
+__version__ = '3.0.0.dev'
 
 __all__ = [
     'pipes',
@@ -273,6 +273,14 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
     """Capture C-level stdout/stderr in a context manager.
 
     The return value for the context manager is (stdout, stderr).
+
+    .. versionchanged:: 3.0
+
+        when using `PIPE` (default), the type of captured output
+        is `io.StringIO/BytesIO` instead of an OS pipe.
+        This eliminates max buffer size issues (and hang when output exceeds 65536 bytes),
+        but also means the buffer cannot be read with `.read()` methods
+        until after the context exits.
 
     Examples
     --------
