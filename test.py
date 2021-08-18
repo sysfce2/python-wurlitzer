@@ -138,8 +138,17 @@ def test_fd_leak():
 
 def test_buffer_full():
     with pipes(stdout=None, stderr=io.StringIO()) as (stdout, stderr):
-        long_string = "x" * 1000000  # create a very long string
+        long_string = "x" * 100000  # create a long string (longer than 65536)
         printf_err(long_string)
 
     # Test never reaches here as the process hangs.
     assert stderr.getvalue() == long_string + "\n"
+
+
+def test_buffer_full_default():
+    with pipes() as (stdout, stderr):
+        long_string = "x" * 100000  # create a long string (longer than 65536)
+        printf(long_string)
+
+    # Test never reaches here as the process hangs.
+    assert stdout.read() == long_string + "\n"

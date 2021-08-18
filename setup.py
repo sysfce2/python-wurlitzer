@@ -33,12 +33,11 @@ setup_args = dict(
     author="Min RK",
     author_email="benjaminrk@gmail.com",
     description="Capture C-level output in context managers",
-    install_requires=["selectors2; python_version<'3.4'"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/minrk/wurlitzer",
     py_modules=["wurlitzer"],
-    python_requires=">=2.7",
+    python_requires=">=3.5",
     license="MIT",
     cmdclass={
         "bdist_egg": bdist_egg if "bdist_egg" in sys.argv else bdist_egg_disabled
@@ -47,7 +46,6 @@ setup_args = dict(
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
     ],
 )

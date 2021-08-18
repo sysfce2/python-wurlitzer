@@ -4,7 +4,7 @@ Use `wurlitzer.pipes` or `wurlitzer.sys_pipes` as context managers.
 """
 from __future__ import print_function
 
-__version__ = '2.1.2.dev'
+__version__ = '3.0.0.dev'
 
 __all__ = [
     'pipes',
@@ -18,24 +18,14 @@ import ctypes
 import errno
 import io
 import os
-from contextlib import contextmanager
-from fcntl import F_GETFL, F_SETFL, fcntl
-
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
-
-try:
-    import selectors
-except ImportError:
-    # py < 3.4
-    import selectors2 as selectors
-
+import selectors
 import sys
 import threading
 import time
 import warnings
+from contextlib import contextmanager
+from fcntl import F_GETFL, F_SETFL, fcntl
+from queue import Queue
 
 libc = ctypes.CDLL(None)
 
@@ -274,6 +264,14 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
 
     The return value for the context manager is (stdout, stderr).
 
+    .. versionchanged:: 3.0
+
+        when using `PIPE` (default), the type of captured output
+        is `io.StringIO/BytesIO` instead of an OS pipe.
+        This eliminates max buffer size issues (and hang when output exceeds 65536 bytes),
+        but also means the buffer cannot be read with `.read()` methods
+        until after the context exits.
+
     Examples
     --------
 
@@ -282,14 +280,13 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
     ... output = stdout.read()
     """
     stdout_pipe = stderr_pipe = False
+    if encoding:
+        PipeIO = io.StringIO
+    else:
+        PipeIO = io.BytesIO
     # setup stdout
     if stdout == PIPE:
-        stdout_r, stdout_w = os.pipe()
-        stdout_w = os.fdopen(stdout_w, 'wb')
-        if encoding:
-            stdout_r = io.open(stdout_r, 'r', encoding=encoding)
-        else:
-            stdout_r = os.fdopen(stdout_r, 'rb')
+        stdout_r = stdout_w = PipeIO()
         stdout_pipe = True
     else:
         stdout_r = stdout_w = stdout
@@ -298,29 +295,22 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding):
         stderr_r = None
         stderr_w = stdout_w
     elif stderr == PIPE:
-        stderr_r, stderr_w = os.pipe()
-        stderr_w = os.fdopen(stderr_w, 'wb')
-        if encoding:
-            stderr_r = io.open(stderr_r, 'r', encoding=encoding)
-        else:
-            stderr_r = os.fdopen(stderr_r, 'rb')
+        stderr_r = stderr_w = PipeIO()
         stderr_pipe = True
     else:
         stderr_r = stderr_w = stderr
-    if stdout_pipe or stderr_pipe:
-        capture_encoding = None
-    else:
-        capture_encoding = encoding
-    w = Wurlitzer(stdout=stdout_w, stderr=stderr_w, encoding=capture_encoding)
+    w = Wurlitzer(stdout=stdout_w, stderr=stderr_w, encoding=encoding)
     try:
         with w:
             yield stdout_r, stderr_r
     finally:
         # close pipes
         if stdout_pipe:
-            stdout_w.close()
+            # seek to 0 so that it can be read after exit
+            stdout_r.seek(0)
         if stderr_pipe:
-            stderr_w.close()
+            # seek to 0 so that it can be read after exit
+            stderr_r.seek(0)
 
 
 def sys_pipes(encoding=_default_encoding):
