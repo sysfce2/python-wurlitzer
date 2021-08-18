@@ -18,24 +18,14 @@ import ctypes
 import errno
 import io
 import os
-from contextlib import contextmanager
-from fcntl import F_GETFL, F_SETFL, fcntl
-
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
-
-try:
-    import selectors
-except ImportError:
-    # py < 3.4
-    import selectors2 as selectors
-
+import selectors
 import sys
 import threading
 import time
 import warnings
+from contextlib import contextmanager
+from fcntl import F_GETFL, F_SETFL, fcntl
+from queue import Queue
 
 libc = ctypes.CDLL(None)
 
