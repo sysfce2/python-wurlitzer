@@ -32,8 +32,9 @@ from queue import Queue
 try:
     from fcntl import F_SETPIPE_SZ
 except ImportError:
-    # ref: linux fcntl.h
+    # ref: linux uapi/linux/fcntl.h
     F_SETPIPE_SZ = 1024 + 7
+    F_GETPIPE_SZ = 1024 + 8
 
 libc = ctypes.CDLL(None)
 
@@ -200,17 +201,16 @@ class Wurlitzer:
         self._save_fds[name] = save_fd
 
         pipe_out, pipe_in = os.pipe()
-        dup2(pipe_in, real_fd)
-        os.close(pipe_in)
-        self._real_fds[name] = real_fd
-
         # set max pipe buffer size (linux only)
         if self._bufsize:
             try:
                 fcntl(pipe_in, F_SETPIPE_SZ, self._bufsize)
             except OSError:
-                # ignore failure to set pipe size
-                pass
+                warnings.warn("Failed to set pipe buffer size", RuntimeWarning)
+
+        dup2(pipe_in, real_fd)
+        os.close(pipe_in)
+        self._real_fds[name] = real_fd
 
         # make pipe_out non-blocking
         flags = fcntl(pipe_out, F_GETFL)
