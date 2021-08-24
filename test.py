@@ -4,9 +4,13 @@ from __future__ import print_function
 import io
 import os
 import platform
+import sys
 import time
+from fcntl import fcntl
 from tempfile import TemporaryFile
 from unittest import mock
+
+import pytest
 
 import wurlitzer
 from wurlitzer import (
@@ -158,3 +162,18 @@ def test_pipe_max_size():
         assert 65535 <= max_pipe_size <= 1024 * 1024
     else:
         assert max_pipe_size is None
+
+
+@pytest.mark.skipif(
+    wurlitzer._get_max_pipe_size() is None, reason="requires _get_max_pipe_size"
+)
+def test_bufsize():
+    default_bufsize = wurlitzer._get_max_pipe_size()
+    with wurlitzer.pipes() as (stdout, stderr):
+        assert fcntl(sys.__stdout__, wurlitzer.F_GETPIPE_SZ) == default_bufsize
+        assert fcntl(sys.__stderr__, wurlitzer.F_GETPIPE_SZ) == default_bufsize
+
+    bufsize = 32768  # seems to only accept powers of two?
+    with wurlitzer.pipes(bufsize=bufsize) as (stdout, stderr):
+        assert fcntl(sys.__stdout__, wurlitzer.F_GETPIPE_SZ) == bufsize
+        assert fcntl(sys.__stderr__, wurlitzer.F_GETPIPE_SZ) == bufsize
