@@ -3,6 +3,8 @@ name: Test
 on:
   pull_request:
   push:
+    branches:
+      - main
 
 jobs:
   pre-commit:
@@ -27,6 +29,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.10.0-rc.1"
         include:
           - os: macos-latest
             python: 3.8

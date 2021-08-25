@@ -30,7 +30,7 @@ from functools import lru_cache
 from queue import Queue
 
 try:
-    from fcntl import F_SETPIPE_SZ
+    from fcntl import F_GETPIPE_SZ, F_SETPIPE_SZ
 except ImportError:
     # ref: linux uapi/linux/fcntl.h
     F_SETPIPE_SZ = 1024 + 7
