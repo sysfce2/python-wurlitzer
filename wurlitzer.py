@@ -4,7 +4,7 @@ Use `wurlitzer.pipes` or `wurlitzer.sys_pipes` as context managers.
 """
 from __future__ import print_function
 
-__version__ = '3.0.2'
+__version__ = '3.0.3.dev'
 
 __all__ = [
     'pipes',
