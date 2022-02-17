@@ -205,8 +205,8 @@ class Wurlitzer:
         if self._bufsize:
             try:
                 fcntl(pipe_in, F_SETPIPE_SZ, self._bufsize)
-            except OSError:
-                warnings.warn("Failed to set pipe buffer size", RuntimeWarning)
+            except OSError as error:
+                warnings.warn("Failed to set pipe buffer size: " + str(error), RuntimeWarning)
 
         dup2(pipe_in, real_fd)
         os.close(pipe_in)
