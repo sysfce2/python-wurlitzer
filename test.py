@@ -173,7 +173,7 @@ def test_bufsize():
         assert fcntl(sys.__stdout__, wurlitzer.F_GETPIPE_SZ) == default_bufsize
         assert fcntl(sys.__stderr__, wurlitzer.F_GETPIPE_SZ) == default_bufsize
 
-    bufsize = 32768  # seems to only accept powers of two?
+    bufsize = 2**18  # seems to only accept powers of two?
     with wurlitzer.pipes(bufsize=bufsize) as (stdout, stderr):
         assert fcntl(sys.__stdout__, wurlitzer.F_GETPIPE_SZ) == bufsize
         assert fcntl(sys.__stderr__, wurlitzer.F_GETPIPE_SZ) == bufsize
