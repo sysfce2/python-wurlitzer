@@ -1,5 +1,5 @@
 {
-    "unreleased": true,
-    "commitLimit": 0,
-    "ignoreCommitPattern": "Bump version"
+  "unreleased": true,
+  "commitLimit": 0,
+  "ignoreCommitPattern": "Bump version"
 }
