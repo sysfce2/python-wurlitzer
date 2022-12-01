@@ -11,6 +11,8 @@ __all__ = [
     'sys_pipes',
     'sys_pipes_forever',
     'stop_sys_pipes',
+    'PIPE',
+    'STDOUT',
     'Wurlitzer',
 ]
 
