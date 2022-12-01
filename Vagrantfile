@@ -16,7 +16,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "freebsd" do |bsd|
     vm = bsd.vm
     vm.box = "generic/freebsd12"
-    vm.provision "shell", inline: "pkg install -y git py38-pip py38-sqlite3", privileged: true
+    vm.provision "shell", inline: "pkg update; pkg install -y git py39-pip py39-sqlite3", privileged: true
     vm.provision "shell", inline: "echo 'export PATH=$HOME/.local/bin:$PATH' >> $HOME/.bash_profile", privileged: false
   end
 end
