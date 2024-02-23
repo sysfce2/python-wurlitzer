@@ -390,7 +390,7 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding, bufsize=None):
     Examples
     --------
 
-    >>> with capture() as (stdout, stderr):
+    >>> with pipes() as (stdout, stderr):
     ...     printf("C-level stdout")
     ... output = stdout.read()
     """
