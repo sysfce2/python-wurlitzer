@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import io
+import logging
 import os
 import platform
 import sys
@@ -177,3 +178,31 @@ def test_bufsize():
     with wurlitzer.pipes(bufsize=bufsize) as (stdout, stderr):
         assert fcntl(sys.__stdout__, wurlitzer.F_GETPIPE_SZ) == bufsize
         assert fcntl(sys.__stderr__, wurlitzer.F_GETPIPE_SZ) == bufsize
+
+
+def test_log_pipes(caplog):
+    with caplog.at_level(logging.INFO), wurlitzer.pipes(
+        logging.getLogger("wurlitzer.stdout"), logging.getLogger("wurlitzer.stderr")
+    ):
+        printf("some stdout")
+        printf_err("some stderr")
+
+    stdout_logs = []
+    stderr_logs = []
+    for t in caplog.record_tuples:
+        if "stdout" in t[0]:
+            stdout_logs.append(t)
+        else:
+            stderr_logs.append(t)
+
+    assert stdout_logs == [
+        ("wurlitzer.stdout", logging.INFO, "some stdout"),
+    ]
+    assert stderr_logs == [
+        ("wurlitzer.stderr", logging.ERROR, "some stderr"),
+    ]
+
+    for record in caplog.records:
+        # check 'stream' extra
+        assert record.stream
+        assert record.name == "wurlitzer." + record.stream
