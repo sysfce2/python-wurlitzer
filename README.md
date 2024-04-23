@@ -44,6 +44,21 @@ with sys_pipes():
     call_some_c_function()
 ```
 
+Forward C-level output to Python Logger objects (new in 3.1).
+Each line of output will be a log message.
+
+```python
+from wurlitzer import pipes, STDOUT
+import logging
+
+logger = logging.getLogger("my.log")
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.FileHandler("mycode.log"))
+
+with pipes(logger, stderr=STDOUT):
+    call_some_c_function()
+```
+
 Or even simpler, enable it as an IPython extension:
 
 ```

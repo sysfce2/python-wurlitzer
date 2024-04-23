@@ -20,6 +20,7 @@ __all__ = [
 import ctypes
 import errno
 import io
+import logging
 import os
 import platform
 import selectors
@@ -183,6 +184,12 @@ class Wurlitzer:
             default: use /proc/sys/fs/pipe-max-size up to a max of 1MB
             if 0, will do nothing.
         """
+        # accept logger objects
+        if stdout and isinstance(stdout, logging.Logger):
+            stdout = _LogPipe(stdout, stream_name="stdout", level=logging.INFO)
+        if stderr and isinstance(stderr, logging.Logger):
+            stderr = _LogPipe(stderr, stream_name="stderr", level=logging.ERROR)
+
         self._stdout = stdout
         if stderr == STDOUT:
             self._stderr = self._stdout
@@ -380,6 +387,18 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding, bufsize=None):
 
     The return value for the context manager is (stdout, stderr).
 
+    Args:
+
+    stdout (optional, default: PIPE): None or PIPE or Writable or Logger
+    stderr (optional, default: PIPE): None or PIPE or STDOUT or Writable or Logger
+    encoding (optional): probably 'utf-8'
+    bufsize (optional): set explicit buffer size if the default doesn't work
+
+    .. versionadded:: 3.1
+        Accept Logger objects for stdout/stderr.
+        If a Logger is specified, each line will produce a log message.
+        stdout messages will be at INFO level, stderr messages at ERROR level.
+
     .. versionchanged:: 3.0
 
         when using `PIPE` (default), the type of captured output
@@ -400,6 +419,13 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding, bufsize=None):
         PipeIO = io.StringIO
     else:
         PipeIO = io.BytesIO
+
+    # accept logger objects
+    if stdout and isinstance(stdout, logging.Logger):
+        stdout = _LogPipe(stdout, stream_name="stdout", level=logging.INFO)
+    if stderr and isinstance(stderr, logging.Logger):
+        stderr = _LogPipe(stderr, stream_name="stderr", level=logging.ERROR)
+
     # setup stdout
     if stdout == PIPE:
         stdout_r = stdout_w = PipeIO()
@@ -420,6 +446,10 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding, bufsize=None):
         with w:
             yield stdout_r, stderr_r
     finally:
+        if stdout and isinstance(stdout, _LogPipe):
+            stdout.flush()
+        if stderr and isinstance(stderr, _LogPipe):
+            stderr.flush()
         # close pipes
         if stdout_pipe:
             # seek to 0 so that it can be read after exit
@@ -427,6 +457,52 @@ def pipes(stdout=PIPE, stderr=PIPE, encoding=_default_encoding, bufsize=None):
         if stderr_pipe:
             # seek to 0 so that it can be read after exit
             stderr_r.seek(0)
+
+
+class _LogPipe(io.BufferedWriter):
+    """Writeable that writes lines to a Logger object as they arrive from captured pipes"""
+
+    def __init__(self, logger, stream_name, level=logging.INFO):
+        self.logger = logger
+        self.stream_name = stream_name
+        self._buf = ""
+        self.level = level
+
+    def _log(self, line):
+        """Log one line"""
+        self.logger.log(self.level, line.rstrip(), extra={"stream": self.stream_name})
+
+    def write(self, chunk):
+        """Given chunk, split into lines
+
+        Log each line as a discrete message
+
+        If it ends with a partial line, save it until the next one
+        """
+        lines = chunk.splitlines(True)
+        if self._buf:
+            lines[0] = self._buf + lines[0]
+        if lines[-1].endswith("\n"):
+            self._buf = ""
+        else:
+            # last line is incomplete
+            self._buf = lines[-1]
+            lines = lines[:-1]
+
+        for line in lines:
+            self._log(line)
+
+    def flush(self):
+        """Write buffer as a last message if there is one"""
+        if self._buf:
+            self._log(self._buf)
+            self._buf = ""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.flush()
 
 
 def sys_pipes(encoding=_default_encoding, bufsize=None):
