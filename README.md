@@ -59,13 +59,22 @@ with pipes(logger, stderr=STDOUT):
     call_some_c_function()
 ```
 
+Forward C-level output to a file (avoids GIL issues with a background thread, new in 3.1):
+
+```python
+from wurlitzer import pipes, STDOUT
+
+with open("log.txt", "ab") as f, pipes(f, stderr=STDOUT):
+    blocking_gil_holding_function()
+```
+
 Or even simpler, enable it as an IPython extension:
 
 ```
 %load_ext wurlitzer
 ```
 
-To forward all C-level output to IPython during execution.
+To forward all C-level output to IPython (e.g. Jupyter cell output) during execution.
 
 ## Acknowledgments
 
