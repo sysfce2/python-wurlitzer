@@ -12,7 +12,8 @@ jobs:
   test:
     # ref: https://github.com/jonashackt/vagrant-github-actions
     # MIT License
-    runs-on: macos-10.15
+    # after macos-12, vagrant stops working
+    runs-on: macos-12
 
     strategy:
       fail-fast: true
