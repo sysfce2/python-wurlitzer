@@ -104,6 +104,16 @@ def test_sys_pipes():
     assert stderr.getvalue() == u"Hi, stdérr\n"
 
 
+def test_sys_pipes_check():
+    # pytest redirects stdout; un-redirect it for the test
+    with mock.patch('sys.stdout', sys.__stdout__), mock.patch(
+        'sys.stderr', sys.__stderr__
+    ):
+        with pytest.raises(ValueError):
+            with sys_pipes():
+                pass
+
+
 def test_redirect_everything():
     stdout = io.StringIO()
     stderr = io.StringIO()
