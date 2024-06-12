@@ -209,6 +209,7 @@ class Wurlitzer:
         real_fd = getattr(sys, '__%s__' % name).fileno()
         save_fd = os.dup(real_fd)
         self._save_fds[name] = save_fd
+        self._real_fds[name] = real_fd
 
         try:
             capture_fd = getattr(self, "_" + name).fileno()
@@ -233,7 +234,6 @@ class Wurlitzer:
 
         dup2(pipe_in, real_fd)
         os.close(pipe_in)
-        self._real_fds[name] = real_fd
 
         # make pipe_out non-blocking
         flags = fcntl(pipe_out, F_GETFL)
