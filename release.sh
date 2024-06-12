@@ -7,4 +7,5 @@ auto-changelog -v $VERSION
 pre-commit run --files CHANGELOG.md || true
 git add CHANGELOG.md
 git commit -m "changelog for $VERSION"
+git show HEAD
 tbump $VERSION
