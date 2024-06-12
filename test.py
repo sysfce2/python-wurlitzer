@@ -229,6 +229,9 @@ def test_two_file_pipes(tmpdir):
             assert w.thread is None
             printf("some stdout")
             printf_err("some stderr")
+        # make sure capture stopped
+        printf("after stdout")
+        printf_err("after stderr")
 
     with test_stdout.open() as f:
         assert f.read() == "some stdout\n"
